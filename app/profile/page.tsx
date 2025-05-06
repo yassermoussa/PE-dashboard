@@ -16,13 +16,11 @@ import {
   CircularProgress,
   Button,
 } from '@mui/material';
+import React from 'react';
 import { useEffect, useState, useRef } from 'react';
-//@ts-ignore
-import html2pdf from 'html2pdf.js';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-
 
 const gradeDivisions: { [key: string]: string[] } = {
   G1: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
@@ -60,8 +58,9 @@ export default function ProfilePage() {
     setSelectedStudent(e.target.value);
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!contentRef.current) return;
+    const html2pdf = (await import('html2pdf.js')) as any;
     html2pdf().from(contentRef.current).save('profile.pdf');
   };
 
@@ -187,7 +186,7 @@ export default function ProfilePage() {
                   <Box
                     key={idx}
                     sx={{
-                      width: '100px',
+                      width: 100,
                       p: 2,
                       textAlign: 'center',
                       backgroundColor: item.bg,
