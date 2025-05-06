@@ -14,9 +14,14 @@ import {
   TableBody,
   Paper,
   CircularProgress,
+  Button,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
-import Grid from '@mui/material/Grid';
+import { useEffect, useState, useRef } from 'react';
+//@ts-ignore
+import html2pdf from 'html2pdf.js';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 
 const gradeDivisions: { [key: string]: string[] } = {
@@ -35,6 +40,7 @@ export default function ProfilePage() {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const contentRef = useRef(null);
 
   const handleGradeChange = (e: any) => {
     setGrade(e.target.value);
@@ -52,6 +58,25 @@ export default function ProfilePage() {
 
   const handleStudentChange = (e: any) => {
     setSelectedStudent(e.target.value);
+  };
+
+  const exportPDF = () => {
+    if (!contentRef.current) return;
+    html2pdf().from(contentRef.current).save('profile.pdf');
+  };
+
+  const exportExcel = () => {
+    if (!profileData) return;
+    const data = profileData.attendance.map((entry: any) => ({
+      Date: entry.date,
+      Status: entry.status,
+      Notes: entry.notes?.join(', '),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'profile.xlsx');
   };
 
   useEffect(() => {
@@ -85,12 +110,32 @@ export default function ProfilePage() {
   return (
     <>
       <Box sx={{ backgroundColor: 'primary.main', color: '#fff', px: 3, py: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          Profile
-        </Typography>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Profile
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={exportPDF}
+              startIcon={<FileDownloadIcon />}
+              sx={{ color: '#fff', borderColor: '#fff' }}
+            >
+              PDF
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={exportExcel}
+              startIcon={<FileDownloadIcon />}
+              sx={{ color: '#fff', borderColor: '#fff' }}
+            >
+              Excel
+            </Button>
+          </Box>
+        </Box>
       </Box>
 
-      <Box sx={{ p: 3, paddingBottom: 10 }}>
+      <Box sx={{ p: 3, paddingBottom: 10 }} ref={contentRef}>
         <FormControl fullWidth sx={{ mb: 2 }}>
           <InputLabel>Grade</InputLabel>
           <Select value={grade} label="Grade" onChange={handleGradeChange}>
@@ -129,55 +174,33 @@ export default function ProfilePage() {
         {!loading && profileData && (
           <>
             <Paper sx={{ p: 2, mb: 2 }}>
-  <Typography fontWeight="bold" sx={{ mb: 2 }}>
-    Attendance Summary
-  </Typography>
-  <Grid container spacing={2}>
-    {[
-      {
-        label: 'Present',
-        value: profileData.presentCount,
-        bg: '#e8f5e9',
-      },
-      {
-        label: 'Absent',
-        value: profileData.absentCount,
-        bg: '#ffebee',
-      },
-      {
-        label: 'Late',
-        value: profileData.lateCount,
-        bg: '#fff8e1',
-      },
-      {
-        label: 'Excused',
-        value: profileData.excusedCount,
-        bg: '#e3f2fd',
-      },
-      {
-        label: 'Notes',
-        value: profileData.notesCount,
-        bg: '#f3e5f5',
-      },
-    ].map((item, index) => (
-      <Grid item xs={12} sm={6} md={3} key={index}>
-  <Paper
-    sx={{
-      p: 2,
-      textAlign: 'center',
-      backgroundColor: item.bg,
-      borderRadius: 2,
-    }}
-  >
-    <Typography fontWeight="bold">{item.label}</Typography>
-    <Typography fontSize={20}>{item.value}</Typography>
-  </Paper>
-</Grid>
-
-    ))}
-  </Grid>
-</Paper>
-
+              <Typography fontWeight="bold" sx={{ mb: 2 }}>
+                Attendance Summary
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                {[{ label: 'Present', value: profileData.presentCount, bg: '#e8f5e9' },
+                  { label: 'Absent', value: profileData.absentCount, bg: '#ffebee' },
+                  { label: 'Late', value: profileData.lateCount, bg: '#fff8e1' },
+                  { label: 'Excused', value: profileData.excusedCount, bg: '#e3f2fd' },
+                  { label: 'Notes', value: profileData.notesCount, bg: '#f3e5f5' }
+                ].map((item, idx) => (
+                  <Box
+                    key={idx}
+                    sx={{
+                      width: '100px',
+                      p: 2,
+                      textAlign: 'center',
+                      backgroundColor: item.bg,
+                      borderRadius: 2,
+                      boxShadow: 2,
+                    }}
+                  >
+                    <Typography fontWeight="bold">{item.label}</Typography>
+                    <Typography fontSize={20}>{item.value}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Paper>
 
             <Paper sx={{ p: 2, mb: 2 }}>
               <Typography fontWeight="bold" gutterBottom>
@@ -221,7 +244,6 @@ export default function ProfilePage() {
                       <TableCell>{p.date}</TableCell>
                       <TableCell>{p.test_type}</TableCell>
                       <TableCell>{p.result}</TableCell>
-
                     </TableRow>
                   ))}
                 </TableBody>
