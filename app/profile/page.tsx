@@ -160,19 +160,20 @@ export default function ProfilePage() {
         bg: '#f3e5f5',
       },
     ].map((item, index) => (
-      <Grid item xs={12} sm={6} md={3} key={index} component="div">
-        <Paper
-          sx={{
-            p: 2,
-            textAlign: 'center',
-            backgroundColor: item.bg,
-            borderRadius: 2,
-          }}
-        >
-          <Typography fontWeight="bold">{item.label}</Typography>
-          <Typography fontSize={20}>{item.value}</Typography>
-        </Paper>
-      </Grid>
+      <Grid item xs={12} sm={6} md={3} key={index}>
+  <Paper
+    sx={{
+      p: 2,
+      textAlign: 'center',
+      backgroundColor: item.bg,
+      borderRadius: 2,
+    }}
+  >
+    <Typography fontWeight="bold">{item.label}</Typography>
+    <Typography fontSize={20}>{item.value}</Typography>
+  </Paper>
+</Grid>
+
     ))}
   </Grid>
 </Paper>
