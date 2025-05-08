@@ -50,13 +50,24 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    fetch('/api/home-summary')
-      .then((res) => res.json())
-      .then((data) => {
-        setSummary(data);
-        setLoading(false);
-      });
+    const fetchData = () => {
+      setLoading(true);
+      fetch('/api/home-summary', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data) => {
+          setSummary(data);
+          setLoading(false);
+        });
+    };
+
+    // Call fetchData immediately on mount
+    fetchData();
+
+    // Set interval to call fetchData every minute (60000 ms)
+    const interval = setInterval(fetchData, 60000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const handleSaveNote = () => {
@@ -76,6 +87,18 @@ export default function HomePage() {
     updated.splice(index, 1);
     setNotes(updated);
     localStorage.setItem('dashboard_notes', JSON.stringify(updated));
+  };
+
+  // Remove duplicates based on student name
+  const getUniqueTopAbsentStudents = (students: any[]) => {
+    const seen = new Set();
+    return students.filter((student) => {
+      if (seen.has(student.name)) {
+        return false;
+      }
+      seen.add(student.name);
+      return true;
+    });
   };
 
   return (
@@ -131,12 +154,21 @@ export default function HomePage() {
             size="small"
             onClick={async () => {
               if (confirm('Are you sure you want to reset all data?')) {
-                const res = await fetch('/api/reset', { method: 'POST' });
-                if (res.ok) {
-                  alert('All data reset');
-                  window.location.reload();
-                } else {
-                  alert('Reset failed');
+                try {
+                  const res = await fetch('/api/reset', { method: 'POST' });
+
+                  if (res.ok) {
+                    alert('All data reset');
+                    window.location.reload(); // Reload to reflect changes
+                  } else {
+                    const errorMessage = await res.text(); // Capture error response
+                    console.log("Reset failed:", errorMessage);
+                    alert('Reset failed: ' + errorMessage);
+                  }
+                } catch (error) {
+                  console.log('Error during reset:', error); // Log error details
+                  alert('Reset failed: Unknown error occurred');
+
                 }
               }
             }}
@@ -150,45 +182,12 @@ export default function HomePage() {
         {!loading && summary && (
           <>
             <Grid container spacing={2} sx={{ mb: 4 }}>
-              {[
-                {
-                  label: 'Total Students',
-                  value: summary.totalStudents,
-                  icon: <GroupsIcon sx={{ fontSize: 36, color: '#2196f3' }} />,
-                  bg: '#e3f2fd',
-                },
-                {
-                  label: 'Present',
-                  value: summary.totalPresent,
-                  icon: <CheckCircleIcon sx={{ fontSize: 36, color: '#4caf50' }} />,
-                  bg: '#e8f5e9',
-                },
-                {
-                  label: 'Absent',
-                  value: summary.totalAbsent,
-                  icon: <CancelIcon sx={{ fontSize: 36, color: '#f44336' }} />,
-                  bg: '#ffebee',
-                },
-                {
-                  label: 'Attendance %',
-                  value: `${summary.attendancePercentage}%`,
-                  icon: <PercentIcon sx={{ fontSize: 36, color: '#ff9800' }} />,
-                  bg: '#fff8e1',
-                },
-                {
-                  label: 'Weekly Incidents',
-                  value: summary.weeklyIncidents,
-                  icon: <CancelIcon sx={{ fontSize: 36, color: '#9c27b0' }} />,
-                  bg: '#f3e5f5',
-                  sub: `${summary.weekStart} → ${summary.weekEnd}`,
-                },
-                {
-                  label: 'Monthly Incidents',
-                  value: summary.monthlyIncidents,
-                  icon: <CancelIcon sx={{ fontSize: 36, color: '#3f51b5' }} />,
-                  bg: '#e8eaf6',
-                  sub: summary.monthName,
-                },
+              {[{ label: 'Total Students', value: summary.totalStudents, icon: <GroupsIcon sx={{ fontSize: 36, color: '#2196f3' }} />, bg: '#e3f2fd' },
+                { label: 'Present', value: summary.totalPresent, icon: <CheckCircleIcon sx={{ fontSize: 36, color: '#4caf50' }} />, bg: '#e8f5e9' },
+                { label: 'Absent', value: summary.totalAbsent, icon: <CancelIcon sx={{ fontSize: 36, color: '#f44336' }} />, bg: '#ffebee' },
+                { label: 'Attendance %', value: `${summary.attendancePercentage}%`, icon: <PercentIcon sx={{ fontSize: 36, color: '#ff9800' }} />, bg: '#fff8e1' },
+                { label: 'Weekly Incidents', value: summary.weeklyIncidents, icon: <CancelIcon sx={{ fontSize: 36, color: '#9c27b0' }} />, bg: '#f3e5f5', sub: `${summary.weekStart} → ${summary.weekEnd}` },
+                { label: 'Monthly Incidents', value: summary.monthlyIncidents, icon: <CancelIcon sx={{ fontSize: 36, color: '#3f51b5' }} />, bg: '#e8eaf6', sub: summary.monthName }
               ].map((card, i) => (
                 <Grid key={i} sx={{ display: 'flex' }}>
                   <Paper
@@ -229,7 +228,7 @@ export default function HomePage() {
                 <Typography fontWeight="bold" sx={{ mb: 1 }}>
                   ⚠️ Students with 5 or more absences
                 </Typography>
-                {summary.highAbsenceAlerts.map((s: any, idx: number) => (
+                {getUniqueTopAbsentStudents(summary.highAbsenceAlerts).map((s: any, idx: number) => (
                   <Typography key={idx} sx={{ ml: 1 }}>
                     • {s.name} (Grade {s.grade}, Division {s.division}) - {s.absent_count} absences
                   </Typography>
@@ -251,7 +250,7 @@ export default function HomePage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {summary.topAbsentStudents.map((s: any, idx: number) => (
+                  {getUniqueTopAbsentStudents(summary.topAbsentStudents).map((s: any, idx: number) => (
                     <TableRow key={idx}>
                       <TableCell>{s.name}</TableCell>
                       <TableCell>{s.grade}</TableCell>

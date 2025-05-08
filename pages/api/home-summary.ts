@@ -66,7 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           as: 'student'
         }
       },
-      
       { $unwind: '$student' },
       {
         $project: {
@@ -130,7 +129,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           as: 'student'
         }
       },
-      
       { $unwind: '$student' },
       {
         $project: {
@@ -154,7 +152,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       weekEnd: weekEnd.toISOString().split('T')[0],
       monthName,
       highAbsenceAlerts: highAbsenceAlerts,
-
     });
   } catch (err) {
     console.error('❌ Error in home-summary:', err);

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import connectDB from '../../lib/mongodb'
 import mongoose from 'mongoose'
 
+
 const attendanceSchema = new mongoose.Schema({}, { strict: false })
 const performanceSchema = new mongoose.Schema({}, { strict: false })
 const incidentSchema = new mongoose.Schema({}, { strict: false })
@@ -13,41 +14,22 @@ const Performance =
 const Incident =
   mongoose.models.Incident || mongoose.model('Incident', incidentSchema)
 
-
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectDB()
 
   const { studentId } = req.query
-
   if (!studentId) return res.status(400).json({ error: 'Missing studentId' })
 
   try {
-    const idString = studentId as string;
+    const filter = { student_id: studentId } // تأكد إن اسم الحقل في القاعدة فعلاً student_id
 
-const attendanceRecords = await Attendance.find({
-  $or: [
-    { studentId: idString },
-    { studentId: new mongoose.Types.ObjectId(idString) }
-  ]
-});
+    const attendanceRecords = await Attendance.find(filter)
+    const performanceRecords = await Performance.find(filter)
+    const incidentRecords = await Incident.find(filter)
 
-const performanceRecords = await Performance.find({
-  $or: [
-    { studentId: idString },
-    { studentId: new mongoose.Types.ObjectId(idString) }
-  ]
-});
-
-const incidentRecords = await Incident.find({
-  $or: [
-    { studentId: idString },
-    { studentId: new mongoose.Types.ObjectId(idString) }
-  ]
-});
-
-
-
+    console.log('attendanceRecords:', attendanceRecords)
+    console.log('performanceRecords:', performanceRecords)
+    console.log('incidentRecords:', incidentRecords)
 
     const summary = {
       presentCount: attendanceRecords.filter((r) => r.status === 'present').length,

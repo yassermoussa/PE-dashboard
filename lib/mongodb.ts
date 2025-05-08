@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 
+console.log('Connected to MongoDB:', process.env.MONGODB_URI)
+
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
 if (!MONGODB_URI) {
